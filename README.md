@@ -1,6 +1,6 @@
 # simple-supervisor
 
-My take on Supervisor.
+My take on Supervisor in Python.
 
 
 # Motivation
