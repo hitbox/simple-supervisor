@@ -41,8 +41,7 @@ def one(iterable):
 
 def hasonlyone(iterable, items):
     """
-    `iterable` has one and only one, item from `items` `in` it; if true, return
-    the item.
+    `iterable` has exactly one item from `items` `in` it; if true, return the item.
     """
     filtered = (item for item in iterable if item in items)
     return one(filtered)
