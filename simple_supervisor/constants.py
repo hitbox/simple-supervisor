@@ -1,0 +1,1 @@
+APPNAME = 'simple_supervisor'
