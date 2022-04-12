@@ -22,6 +22,7 @@ def main(argv=None):
     if not commands:
         parser.error('No commands.')
 
-    if args.dry:
-        for command in commands:
-            print(command.preview())
+    for command in commands:
+        print(command.preview())
+        if not args.dry:
+            completed = command.run()
