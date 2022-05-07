@@ -1,5 +1,11 @@
 # DIARY
 
+2022-05-05: Loosened restrictions on valid key names for `git pull` commands.
+            commit 91df811204db7d51c1f2eef1b16d71c9c3fa06db
+            
+            Thinking: CLI command to search for `.git` dirs, report (list) and
+            add them to config.
+
 2022-04-04: Have some experience using this thing now. So far, only using the
             simple git pull configuration. It's working well enough to go "Oh,
             that repo I care about! Better add it to this thing. And that
