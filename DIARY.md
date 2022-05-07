@@ -2,7 +2,7 @@
 
 2022-05-05: Loosened restrictions on valid key names for `git pull` commands.
             commit 91df811204db7d51c1f2eef1b16d71c9c3fa06db
-            
+
             Thinking: CLI command to search for `.git` dirs, report (list) and
             add them to config.
 
