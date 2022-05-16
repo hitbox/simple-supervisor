@@ -44,8 +44,8 @@ def simple_git_pull(cp):
     """
     git_pull_config = cp[SIMPLE_GIT_PULL]
 
-    items = parse_numbered_list(git_pull_config, 'path')
-    paths1, paths2 = tee(path for key, path in items)
+    # iterate twice, efficiently
+    paths1, paths2 = tee(path for key, path in git_pull_config.items())
 
     # raise for missing paths
     utils.raise_for_missing(paths1)
