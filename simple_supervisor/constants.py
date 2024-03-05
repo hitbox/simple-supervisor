@@ -1,1 +1,0 @@
-APPNAME = 'simple_supervisor'
