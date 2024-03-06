@@ -1,5 +1,6 @@
 import argparse
 import configparser
+import datetime
 import logging.config
 import os
 import subprocess
@@ -25,9 +26,10 @@ def exclude_paths(lines):
         if line and not line.startswith('#'):
             yield line
 
-def print_stdout(stdout):
-    for line in stdout.splitlines():
-        print(line)
+def print_result(result):
+    for output in [result.stdout, result.stderr]:
+        for line in output.splitlines():
+            print(line)
 
 def get_branch_name(root):
     gitdir = os.path.join(root, '.git')
@@ -46,24 +48,33 @@ def git_fetch_and_hard_reset_origin_branch(top, exclude):
         check = True,
         text = True,
     )
-    for root in dir_with_git(top):
+    # XXX: WIP
+    # - the git commands are changing the state of the filesystem
+    # - so we capture in a list
+    # - would rather generate
+    roots = list(dir_with_git(top))
+    for root in roots:
         if root in exclude:
             print(f'excluding: {root}')
             continue
         else:
             print(root)
 
+        # XXX: WIP
+        if not os.path.exists(root):
+            continue
+
         options.update(cwd=root)
         command = ['git', 'fetch']
         result = subprocess.run(command, **options)
-        if result.stdout:
+        if result.stdout or result.stderr:
             # guessing that if there was standard output, then we proceed
-            print_stdout(result.stdout)
+            print_result(result)
             branch = get_branch_name(root)
             command = ['git', 'reset', '--hard', f'origin/{branch}']
             result = subprocess.run(command, **options)
             if result.stdout:
-                print_stdout(result.stdout)
+                print_result(result)
 
 def main(argv=None):
     """
@@ -74,6 +85,10 @@ def main(argv=None):
         prog = APPNAME,
     )
     parser.add_argument('config', nargs='+')
+    parser.add_argument(
+        '--top',
+        help = 'Ignore `top` from config and start at this path.',
+    )
     args = parser.parse_args(argv)
 
     cp = configparser.ConfigParser()
@@ -87,8 +102,18 @@ def main(argv=None):
     exclude = app_section.get('exclude', '')
     exclude = set(exclude_paths(exclude.splitlines()))
 
-    top = app_section['top']
+    if args.top:
+        top = args.top
+    else:
+        top = app_section['top']
+
+    start_time = datetime.datetime.now()
     git_fetch_and_hard_reset_origin_branch(top, exclude)
+    end_time = datetime.datetime.now()
+    elapsed = end_time - start_time
+    print(f'{start_time=}')
+    print(f'{elapsed=}')
+    print(f'{end_time=}')
 
 if __name__ == '__main__':
     main()
