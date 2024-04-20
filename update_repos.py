@@ -60,28 +60,13 @@ def git_fetch_and_hard_reset_origin_branch(root):
         if result.stdout or result.stderr:
             yield result
 
-def main(argv=None):
+def build_command(args, cp):
     """
-    Run commands from configuration.
+    Build a database file of .git repo root paths.
     """
-    parser = argparse.ArgumentParser(
-        description = main.__doc__,
-        prog = APPNAME,
-    )
-    parser.add_argument('config', nargs='+')
-    parser.add_argument(
-        '--top',
-        help = 'Ignore `top` from config and start at this path.',
-    )
-    args = parser.parse_args(argv)
-
-    cp = configparser.ConfigParser()
-    cp.read(args.config)
-
-    if set(['loggers', 'handlers', 'formatters']).issubset(cp):
-        logging.config.fileConfig(cp)
-
     app_section = cp[APPNAME]
+
+    output = app_section['database']
 
     exclude = app_section.get('exclude', '')
     exclude = set(exclude_paths(exclude.splitlines()))
@@ -91,36 +76,78 @@ def main(argv=None):
     else:
         top = app_section['top']
 
-    logger = logging.getLogger(APPNAME)
+    with open(output, 'w') as database:
+        for root in dir_with_git(top):
+            # root is a path that contains a .git
+            if root in exclude:
+                continue
+            print(root, file=database)
+
+def update_command(args, cp):
+    """
+    Fetch and update git repos.
+    """
+    app_section = cp[APPNAME]
+    database_path = app_section['database']
 
     start_time = datetime.datetime.now()
 
-    # XXX: WIP
-    # - the git commands are changing the state of the filesystem
-    # - so we capture in a list
-    # - would rather generate
-    logger.debug('finding .git roots')
-    roots = list(dir_with_git(top))
-
-    for root in roots:
-        if root in exclude:
-            logger.debug(f'excluding: {root}')
-            continue
-        else:
-            logger.debug(f'update: {root}')
-
-        for result in git_fetch_and_hard_reset_origin_branch(root):
-            for attr in ['stdout', 'stderr']:
-                output = getattr(result, attr)
-                for line in output.splitlines():
-                    logger.debug('%s: %s', attr, line)
+    logger = logging.getLogger(APPNAME)
+    with open(database_path) as database:
+        for root in map(str.strip, database):
+            logger.debug('update: %s', root)
+            for result in git_fetch_and_hard_reset_origin_branch(root):
+                for attr in ['stdout', 'stderr']:
+                    output = getattr(result, attr)
+                    for line in output.splitlines():
+                        logger.debug('%s: %s', attr, line)
 
     end_time = datetime.datetime.now()
     elapsed = end_time - start_time
-
     logger.debug('start_time=%s', start_time)
     logger.debug('elapsed=%s', elapsed)
     logger.debug('end_time=%s', end_time)
+
+def add_common_options(parser):
+    parser.add_argument('config', nargs='+')
+    parser.add_argument(
+        '--top',
+        help = 'Ignore `top` from config and start at this path.',
+    )
+
+def argument_parser():
+    parser = argparse.ArgumentParser(
+        description = main.__doc__,
+        prog = APPNAME,
+    )
+    subparsers = parser.add_subparsers()
+
+    sp = subparsers.add_parser('build')
+    add_common_options(sp)
+    sp.set_defaults(func=build_command)
+
+    sp = subparsers.add_parser('update')
+    add_common_options(sp)
+    sp.set_defaults(func=update_command)
+    return parser
+
+def main(argv=None):
+    """
+    Run commands from configuration.
+    """
+    parser = argument_parser()
+    args = parser.parse_args(argv)
+
+    func = args.func
+    del args.func
+
+    cp = configparser.ConfigParser()
+    cp.read(args.config)
+
+    if set(['loggers', 'handlers', 'formatters']).issubset(cp):
+        logging.config.fileConfig(cp)
+
+    return func(args, cp)
 
 if __name__ == '__main__':
     main()
