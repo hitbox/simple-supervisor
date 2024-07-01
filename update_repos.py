@@ -94,8 +94,10 @@ def update_command(args, cp):
 
     logger = logging.getLogger(APPNAME)
     with open(database_path) as database:
-        for root in map(str.strip, database):
-            logger.debug('update: %s', root)
+        roots = list(map(str.strip, database))
+        nroots = len(roots)
+        for n, root in enumerate(roots, start=1):
+            logger.debug('(%03d/%03d) update: %s', n, nroots, root)
             for result in git_fetch_and_hard_reset_origin_branch(root):
                 for attr in ['stdout', 'stderr']:
                     output = getattr(result, attr)
