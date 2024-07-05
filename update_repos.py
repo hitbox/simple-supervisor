@@ -43,22 +43,25 @@ def get_branch_name(root):
     return branch
 
 def git_fetch_and_hard_reset_origin_branch(root):
+    results = []
     options = dict(
         capture_output = True,
         check = True,
         text = True,
+        timeout = 60,
     )
     options.update(cwd=root)
     command = ['git', 'fetch']
     result = subprocess.run(command, **options)
     if result.stdout or result.stderr:
         # guessing that if there was standard output, then we proceed
-        yield result
+        results.append(result)
         branch = get_branch_name(root)
         command = ['git', 'reset', '--hard', f'origin/{branch}']
         result = subprocess.run(command, **options)
         if result.stdout or result.stderr:
-            yield result
+            results.append(result)
+    return results
 
 def build_command(args, cp):
     """
@@ -98,11 +101,16 @@ def update_command(args, cp):
         nroots = len(roots)
         for n, root in enumerate(roots, start=1):
             logger.debug('(%03d/%03d) update: %s', n, nroots, root)
-            for result in git_fetch_and_hard_reset_origin_branch(root):
-                for attr in ['stdout', 'stderr']:
-                    output = getattr(result, attr)
-                    for line in output.splitlines():
-                        logger.debug('%s: %s', attr, line)
+            try:
+                results = git_fetch_and_hard_reset_origin_branch(root)
+            except:
+                logger.exception('%s', root)
+            else:
+                for result in results:
+                    for attr in ['stdout', 'stderr']:
+                        output = getattr(result, attr)
+                        for line in output.splitlines():
+                            logger.debug('%s: %s', attr, line)
 
     end_time = datetime.datetime.now()
     elapsed = end_time - start_time
